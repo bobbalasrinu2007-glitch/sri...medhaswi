@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sri Medhaswi School – Student Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- ═══════════ FIREBASE SDK v9 (compat — works in plain HTML) ═══════════ -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<style>
+  :root{--navy:#0d1b3e;--gold:#c9a84c;--gold-light:#e8cc7a;--cream:#fdf8ef;--green:#1a6b3c;--green-light:#22a05a;--red:#c0392b;--white:#ffffff;--grey:#6b7280;--border:#ddd6c2;--shadow:0 8px 32px rgba(13,27,62,0.13);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--cream);min-height:100vh;}
+  header{background:linear-gradient(135deg,var(--navy) 0%,#1a2f6b 100%);color:var(--white);padding:0;position:relative;overflow:hidden;}
+  header::before{content:'';position:absolute;top:-60px;right:-60px;width:260px;height:260px;border-radius:50%;background:rgba(201,168,76,0.12);pointer-events:none;}
+  header::after{content:'';position:absolute;bottom:-80px;left:10%;width:320px;height:320px;border-radius:50%;background:rgba(201,168,76,0.07);pointer-events:none;}
+  .header-inner{display:flex;align-items:center;gap:20px;padding:24px 40px;position:relative;z-index:1;}
+  .school-emblem{width:72px;height:72px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;box-shadow:0 4px 16px rgba(201,168,76,0.4);}
+  .school-name h1{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:700;}
+  .school-name p{font-size:0.82rem;color:var(--gold-light);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+  .header-nav{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;}
+  .nav-btn{padding:9px 20px;border-radius:8px;font-size:0.85rem;font-weight:500;cursor:pointer;border:none;transition:all 0.2s;font-family:'DM Sans',sans-serif;}
+  .nav-btn.outline{background:transparent;border:1.5px solid rgba(201,168,76,0.6);color:var(--gold-light);}
+  .nav-btn.outline:hover{background:rgba(201,168,76,0.12);}
+  .nav-btn.solid{background:var(--gold);color:var(--navy);font-weight:600;}
+  .nav-btn.solid:hover{background:var(--gold-light);}
+  .banner{background:var(--gold);color:var(--navy);text-align:center;padding:7px 20px;font-size:0.8rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+  main{max-width:940px;margin:0 auto;padding:36px 20px 60px;}
+  .page{display:none;}
+  .page.active{display:block;animation:fadeIn 0.4s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .card{background:var(--white);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;}
+  .card-head{background:linear-gradient(135deg,var(--navy),#1a2f6b);color:var(--white);padding:22px 32px;display:flex;align-items:center;gap:14px;}
+  .card-head .icon{font-size:1.6rem;}
+  .card-head h2{font-family:'Playfair Display',serif;font-size:1.4rem;}
+  .card-head p{font-size:0.8rem;color:rgba(255,255,255,0.65);margin-top:2px;}
+  .card-body{padding:32px;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .form-grid .full{grid-column:1/-1;}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:0.78rem;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--navy);}
+  .field label span.req{color:var(--red);margin-left:2px;}
+  .field input,.field select,.field textarea{padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-size:0.92rem;font-family:'DM Sans',sans-serif;background:#fafaf7;color:var(--navy);transition:border 0.2s,box-shadow 0.2s;outline:none;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,0.15);background:var(--white);}
+  .field select{cursor:pointer;}
+  .field textarea{resize:vertical;min-height:70px;}
+  .section-label{font-size:0.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);padding:8px 0 2px;border-bottom:1.5px solid var(--border);margin-bottom:2px;grid-column:1/-1;}
+  .btn{padding:12px 28px;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;}
+  .btn-primary{background:linear-gradient(135deg,var(--navy),#1a2f6b);color:var(--white);box-shadow:0 4px 14px rgba(13,27,62,0.25);}
+  .btn-primary:hover{transform:translateY(-1px);}
+  .btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--navy);}
+  .btn-danger{background:var(--red);color:var(--white);}
+  .btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--grey);}
+  .btn-outline:hover{border-color:var(--navy);color:var(--navy);}
+  .form-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:24px;}
+  #toast{position:fixed;bottom:28px;right:28px;padding:14px 22px;border-radius:12px;font-size:0.88rem;font-weight:500;color:var(--white);box-shadow:0 6px 24px rgba(0,0,0,0.18);display:none;z-index:9999;}
+  #toast.success{background:var(--green);}
+  #toast.error{background:var(--red);}
+  #toast.info{background:var(--navy);}
+  #toast.warning{background:#d97706;}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(13,27,62,0.55);z-index:1000;align-items:center;justify-content:center;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--white);border-radius:16px;padding:36px 32px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(13,27,62,0.25);animation:fadeIn 0.3s ease;}
+  .stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px;}
+  .stat-card{background:var(--navy);color:var(--white);border-radius:12px;padding:18px 10px;text-align:center;}
+  .stat-card .num{font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--gold);}
+  .stat-card .lbl{font-size:0.7rem;color:rgba(255,255,255,0.6);margin-top:4px;}
+  .tabs{display:flex;gap:4px;margin-bottom:24px;flex-wrap:wrap;}
+  .tab-btn{padding:8px 18px;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--white);color:var(--grey);font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+  .tab-btn.active{background:var(--navy);color:var(--white);border-color:var(--navy);}
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+  table{width:100%;border-collapse:collapse;font-size:0.83rem;}
+  thead{background:var(--navy);color:var(--white);}
+  thead th{padding:11px 14px;text-align:left;font-weight:600;white-space:nowrap;}
+  tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s;}
+  tbody tr:hover{background:#fdf6e3;}
+  tbody td{padding:10px 14px;color:#333;}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;}
+  .badge-blue{background:#dbeafe;color:#1d4ed8;}
+  .badge-gold{background:#fef3c7;color:#92400e;}
+  .icon-btn{background:none;border:none;cursor:pointer;font-size:1rem;padding:4px 6px;border-radius:6px;transition:background 0.15s;}
+  .icon-btn:hover{background:var(--border);}
+  .empty-state{text-align:center;padding:40px 20px;color:var(--grey);font-size:0.88rem;}
+  .empty-state .big{font-size:2.5rem;margin-bottom:8px;}
+  .password-gate{max-width:380px;margin:0 auto;background:var(--white);border-radius:16px;box-shadow:var(--shadow);padding:40px 32px;text-align:center;}
+  .password-gate .lock-icon{font-size:3rem;margin-bottom:14px;}
+  .password-gate h2{font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--navy);margin-bottom:6px;}
+  .password-gate p{font-size:0.84rem;color:var(--grey);margin-bottom:24px;}
+  .spinner{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(255,255,255,0.35);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .sync-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  .sync-info{font-size:0.8rem;color:var(--grey);}
+  .sync-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
+  .dot-ok{background:#22a05a;}
+  .dot-err{background:var(--red);}
+  .dot-loading{background:#d97706;animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .loading-screen{text-align:center;padding:80px 20px;}
+  .loading-screen .fire{font-size:3.5rem;margin-bottom:16px;animation:bounce 1s infinite alternate;}
+  @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-10px)}}
+  .loading-screen h2{font-family:'Playfair Display',serif;color:var(--navy);margin-bottom:8px;}
+  .loading-screen p{color:var(--grey);font-size:0.88rem;}
+  .load-spinner{margin-top:24px;width:36px;height:36px;border:3px solid rgba(13,27,62,0.15);border-top-color:var(--navy);border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;}
+  @media(max-width:600px){
+    .header-inner{padding:16px 18px;flex-wrap:wrap;}
+    .header-nav{width:100%;justify-content:flex-end;}
+    .school-name h1{font-size:1.3rem;}
+    .form-grid{grid-template-columns:1fr;}
+    .form-grid .full{grid-column:auto;}
+    .stats-row{grid-template-columns:1fr 1fr;}
+    .card-body{padding:20px 16px;}
+    .modal{padding:24px 18px;margin:10px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="school-emblem">🏫</div>
+    <div class="school-name">
+      <h1>Sri Medhaswi School</h1>
+      <p>Nurturing Minds · Building Futures</p>
+    </div>
+    <div class="header-nav">
+      <button class="nav-btn outline" onclick="showPage('register')">Student Register</button>
+      <button class="nav-btn solid" onclick="showOwnerLogin()">Owner Login</button>
+    </div>
+  </div>
+</header>
+<div class="banner">🎓 Academic Year 2025–2026 · All Classes I to XII</div>
+
+<main>
+
+<!-- ════ LOADING ════ -->
+<div class="page active" id="page-setup">
+  <div class="loading-screen">
+    <div class="fire">🔥</div>
+    <h2>Connecting to Firebase…</h2>
+    <p>Loading school data. Please wait.</p>
+    <div class="load-spinner"></div>
+  </div>
+</div>
+
+<!-- ════ REGISTER ════ -->
+<div class="page" id="page-register">
+  <div class="card">
+    <div class="card-head"><div class="icon">📝</div><div><h2>Student Registration</h2><p>Fields marked * are mandatory.</p></div></div>
+    <div class="card-body">
+      <form id="regForm" onsubmit="submitRegistration(event)" novalidate>
+        <div class="form-grid">
+          <div class="section-label">Student Information</div>
+          <div class="field full"><label>Student Full Name <span class="req">*</span></label><input type="text" id="s_name" placeholder="e.g. Ravi Kumar"></div>
+          <div class="field">
+            <label>Class <span class="req">*</span></label>
+            <select id="s_class">
+              <option value="">— Select Class —</option>
+              <option>Class I</option><option>Class II</option><option>Class III</option><option>Class IV</option><option>Class V</option><option>Class VI</option>
+              <option>Class VII</option><option>Class VIII</option><option>Class IX</option><option>Class X</option><option>Class XI</option><option>Class XII</option>
+            </select>
+          </div>
+          <div class="field"><label>Section</label><select id="s_section"><option value="">— Select —</option><option>Section A</option><option>Section B</option><option>Section C</option><option>Section D</option></select></div>
+          <div class="field"><label>Class Teacher <span class="req">*</span></label><select id="s_teacher"><option value="">— Select Teacher —</option></select></div>
+          <div class="field"><label>Gender <span class="req">*</span></label><select id="s_gender"><option value="">— Select —</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+          <div class="section-label">Parent Information</div>
+          <div class="field"><label>Father's Name <span class="req">*</span></label><input type="text" id="s_father" placeholder="Father's full name"></div>
+          <div class="field"><label>Father's Mobile <span class="req">*</span></label><input type="tel" id="s_father_mob" placeholder="10-digit mobile" maxlength="10"></div>
+          <div class="field"><label>Mother's Name <span class="req">*</span></label><input type="text" id="s_mother" placeholder="Mother's full name"></div>
+          <div class="field"><label>Mother's Mobile <span class="req">*</span></label><input type="tel" id="s_mother_mob" placeholder="10-digit mobile" maxlength="10"></div>
+          <div class="section-label">Address</div>
+          <div class="field full"><label>Residential Address <span class="req">*</span></label><textarea id="s_address" placeholder="House No, Street, Village/City, District – PIN"></textarea></div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" onclick="resetRegForm()">Clear</button>
+          <button type="submit" class="btn btn-primary" id="regSubmitBtn">✅ Submit Registration</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ════ OWNER LOGIN ════ -->
+<div class="page" id="page-ownerlogin">
+  <div class="password-gate">
+    <div class="lock-icon">🔐</div>
+    <h2>Owner Login</h2>
+    <p>Enter your owner password to access the management dashboard.</p>
+    <div class="field" style="text-align:left;margin-bottom:18px;">
+      <label>Password <span class="req">*</span></label>
+      <input type="password" id="ownerPwd" placeholder="Enter owner password" onkeydown="if(event.key==='Enter')ownerLogin()">
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="ownerLogin()">🔓 Login</button>
+
+  </div>
+</div>
+
+<!-- ════ OWNER DASHBOARD ════ -->
+<div class="page" id="page-owner">
+  <div class="sync-row">
+    <div class="sync-info">
+      <span class="sync-dot dot-ok" id="syncDot"></span>
+      <span id="syncMsg">🔥 Firebase Connected</span>
+      &nbsp;·&nbsp; Last sync: <span id="lastSyncTime">—</span>
+    </div>
+    <button class="btn btn-outline" style="padding:7px 16px;font-size:0.82rem;" onclick="loadAll(true)">🔄 Refresh</button>
+  </div>
+
+  <div class="stats-row" id="statsRow"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="ownerTab('students',this)">📋 Admission</button>
+    <button class="tab-btn" onclick="ownerTab('teachers',this)">👩‍🏫 Teachers</button>
+    <button class="tab-btn" onclick="ownerTab('addteacher',this)">➕ Add Teacher</button>
+    <button class="tab-btn" onclick="ownerTab('settings',this)">⚙️ Settings</button>
+  </div>
+
+  <!-- ADMISSION TAB -->
+  <div id="tab-students" class="card" style="margin-bottom:0;">
+    <div class="card-head"><div class="icon">📋</div><div><h2>Admission Panel</h2><p>Manage students by admission status</p></div></div>
+    <div class="card-body">
+      <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+        <select id="filterClass" onchange="renderAdmission()" style="padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:inherit;font-size:0.83rem;">
+          <option value="">All Classes</option>
+          <option>Class I</option><option>Class II</option><option>Class III</option><option>Class IV</option><option>Class V</option><option>Class VI</option>
+          <option>Class VII</option><option>Class VIII</option><option>Class IX</option><option>Class X</option><option>Class XI</option><option>Class XII</option>
+        </select>
+        <input type="text" id="searchStudent" oninput="renderAdmission()" placeholder="🔍 Search student name…"
+          style="padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:inherit;font-size:0.83rem;flex:1;min-width:160px;">
+      </div>
+      <div style="display:flex;border-radius:10px;overflow:hidden;border:1.5px solid var(--border);margin-bottom:20px;">
+        <button id="adm-tab-notjoined" onclick="setAdmTab('Not Joined')" style="flex:1;padding:12px 8px;border:none;cursor:pointer;font-family:inherit;font-size:0.85rem;font-weight:700;background:#fee2e2;color:#991b1b;border-right:1.5px solid var(--border);transition:all 0.2s;">❌ Not Joined<br><span id="cnt-notjoined" style="font-size:0.75rem;font-weight:600;"></span></button>
+        <button id="adm-tab-pending"   onclick="setAdmTab('Pending')"    style="flex:1;padding:12px 8px;border:none;cursor:pointer;font-family:inherit;font-size:0.85rem;font-weight:700;background:#fef3c7;color:#92400e;border-right:1.5px solid var(--border);transition:all 0.2s;">🕐 Pending<br><span id="cnt-pending"   style="font-size:0.75rem;font-weight:600;"></span></button>
+        <button id="adm-tab-joined"    onclick="setAdmTab('Joined')"     style="flex:1;padding:12px 8px;border:none;cursor:pointer;font-family:inherit;font-size:0.85rem;font-weight:700;background:#d1fae5;color:#065f46;transition:all 0.2s;">✅ Joined<br><span id="cnt-joined"    style="font-size:0.75rem;font-weight:600;"></span></button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Student Name</th><th>Class</th><th>Teacher</th><th>Father</th><th>Father Mob</th><th>Mother</th><th>Mother Mob</th><th>Move To</th><th>Edit</th></tr></thead>
+          <tbody id="admissionTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEACHERS TAB -->
+  <div id="tab-teachers" class="card" style="display:none;margin-bottom:0;">
+    <div class="card-head"><div class="icon">👩‍🏫</div><div><h2>Teacher List</h2><p>All teachers added by owner</p></div></div>
+    <div class="card-body">
+      <div class="tbl-wrap">
+        <table><thead><tr><th>#</th><th>Name</th><th>Subject</th><th>Mobile</th><th>Action</th></tr></thead><tbody id="teachersTbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD TEACHER TAB -->
+  <div id="tab-addteacher" class="card" style="display:none;margin-bottom:0;">
+    <div class="card-head"><div class="icon">➕</div><div><h2>Add New Teacher</h2><p>Added teachers appear in the registration form</p></div></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field"><label>Teacher Name <span class="req">*</span></label><input type="text" id="t_name" placeholder="Full name"></div>
+        <div class="field"><label>Subject</label><input type="text" id="t_subject" placeholder="e.g. Mathematics"></div>
+        <div class="field"><label>Mobile Number</label><input type="tel" id="t_mobile" placeholder="10-digit" maxlength="10"></div>
+      </div>
+      <div class="form-actions"><button class="btn btn-gold" onclick="addTeacher()">➕ Add Teacher</button></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div id="tab-settings" class="card" style="display:none;margin-bottom:0;">
+    <div class="card-head"><div class="icon">⚙️</div><div><h2>Settings</h2><p>Password and data management</p></div></div>
+    <div class="card-body">
+      <p style="font-size:0.85rem;color:var(--grey);margin-bottom:16px;font-weight:600;">Change Owner Password</p>
+      <div class="form-grid">
+        <div class="field"><label>Current Password</label><input type="password" id="cur_pwd" placeholder="Current password"></div>
+        <div class="field"><label>New Password</label><input type="password" id="new_pwd" placeholder="New password"></div>
+        <div class="field"><label>Confirm New Password</label><input type="password" id="conf_pwd" placeholder="Confirm new password"></div>
+      </div>
+      <div class="form-actions"><button class="btn btn-primary" onclick="changePassword()">🔑 Change Password</button></div>
+      <hr style="margin:28px 0;border-color:var(--border);">
+      <p style="font-size:0.85rem;color:var(--grey);margin-bottom:10px;font-weight:600;">🔥 Firebase Database Status</p>
+      <p id="connectedUrl" style="font-size:0.78rem;color:var(--grey);margin-bottom:16px;line-height:1.8;"></p>
+      <hr style="margin:28px 0;border-color:var(--border);">
+      <p style="font-size:0.85rem;color:var(--grey);margin-bottom:12px;font-weight:600;">Danger Zone</p>
+      <button class="btn btn-danger" onclick="clearAllStudents()">🗑️ Clear All Student Records</button>
+      <button class="btn btn-outline" style="margin-left:10px;" onclick="ownerLogout()">🚪 Logout</button>
+    </div>
+  </div>
+</div><!-- /page-owner -->
+</main>
+
+<!-- ════ EDIT STUDENT MODAL ════ -->
+<div class="overlay" id="editModal">
+  <div class="modal" style="max-width:640px;max-height:93vh;overflow-y:auto;">
+    <h3 style="font-family:'Playfair Display',serif;color:var(--navy);font-size:1.3rem;margin-bottom:5px;">✏️ Edit Student Details</h3>
+    <p style="font-size:0.82rem;color:var(--grey);margin-bottom:18px;">Update the information and save.</p>
+    <input type="hidden" id="edit_id">
+    <div class="form-grid">
+      <div class="section-label">Student Information</div>
+      <div class="field full"><label>Student Full Name <span class="req">*</span></label><input type="text" id="edit_name"></div>
+      <div class="field">
+        <label>Class <span class="req">*</span></label>
+        <select id="edit_class"><option value="">— Select —</option><option>Class I</option><option>Class II</option><option>Class III</option><option>Class IV</option><option>Class V</option><option>Class VI</option><option>Class VII</option><option>Class VIII</option><option>Class IX</option><option>Class X</option><option>Class XI</option><option>Class XII</option></select>
+      </div>
+      <div class="field"><label>Section</label><select id="edit_section"><option value="">—</option><option>Section A</option><option>Section B</option><option>Section C</option><option>Section D</option></select></div>
+      <div class="field"><label>Class Teacher <span class="req">*</span></label><select id="edit_teacher"><option value="">— Select —</option></select></div>
+      <div class="field"><label>Gender</label><select id="edit_gender"><option value="">—</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+      <div class="field"><label>Status</label><select id="edit_status"><option value="Not Joined">❌ Not Joined</option><option value="Pending">🕐 Pending</option><option value="Joined">✅ Joined</option></select></div>
+      <div class="section-label">Parent Information</div>
+      <div class="field"><label>Father's Name <span class="req">*</span></label><input type="text" id="edit_father"></div>
+      <div class="field"><label>Father's Mobile <span class="req">*</span></label><input type="tel" id="edit_father_mob" maxlength="10"></div>
+      <div class="field"><label>Mother's Name <span class="req">*</span></label><input type="text" id="edit_mother"></div>
+      <div class="field"><label>Mother's Mobile <span class="req">*</span></label><input type="tel" id="edit_mother_mob" maxlength="10"></div>
+      <div class="section-label">Address</div>
+      <div class="field full"><label>Residential Address <span class="req">*</span></label><textarea id="edit_address" style="min-height:60px;"></textarea></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+      <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" id="saveEditBtn" onclick="saveEdit()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════════╗
+//  🔥 FIREBASE CONFIGURATION
+//  ⚠️  REPLACE the values below with your actual config
+//  Get it from: Firebase Console → Project Settings → Your Apps → Web
+// ╚══════════════════════════════════════════════════════╝
+const firebaseConfig = {
+  apiKey:            "AIzaSyASmShg0uLbPOgadjGN7kbZXvYNs-N1wUc",
+  authDomain:        "sri-medhaswi.firebaseapp.com",
+  databaseURL:       "https://sri-medhaswi-default-rtdb.firebaseio.com",
+  projectId:         "sri-medhaswi",
+  storageBucket:     "sri-medhaswi.firebasestorage.app",
+  messagingSenderId: "538532384443",
+  appId:             "1:538532384443:web:7c6611537512f0de4ce39e",
+  measurementId:     "G-DDLPR5QTSX"
+};
+
+// ── Initialize Firebase ─────────────────────────────────
+firebase.initializeApp(firebaseConfig);
+const db          = firebase.database();
+const studentsRef = db.ref('students');
+const teachersRef = db.ref('teachers');
+
+// ╔══════════════════════════════════════════════════════╗
+//  APP STATE
+// ╚══════════════════════════════════════════════════════╝
+const State = {
+  students: [],
+  teachers: [],
+  ownerPwd: localStorage.getItem('sms_owner_pwd') || 'admin123',
+  loggedIn: false,
+};
+let currentAdmTab = 'Not Joined';
+
+// ╔══════════════════════════════════════════════════════╗
+//  DEFAULT TEACHERS
+// ╚══════════════════════════════════════════════════════╝
+function defaultTeachers() {
+  return [
+    { id:'T001', name:'Smt. Lakshmi Devi', subject:'Telugu',      mobile:'' },
+    { id:'T002', name:'Sri. Raju Naidu',   subject:'Mathematics', mobile:'' },
+    { id:'T003', name:'Smt. Padmaja',      subject:'Science',     mobile:'' },
+  ];
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  SYNC STATUS UI
+// ╚══════════════════════════════════════════════════════╝
+function setSyncUI(status) {
+  const dot = document.getElementById('syncDot');
+  const msg = document.getElementById('syncMsg');
+  if (!dot) return;
+  dot.className = 'sync-dot ' + (status==='ok'?'dot-ok':status==='error'?'dot-err':'dot-loading');
+  msg.textContent = status==='ok'?'🔥 Firebase Connected':status==='error'?'⚠️ Offline':'⏳ Syncing…';
+}
+
+function updateSyncTime() {
+  const el = document.getElementById('lastSyncTime');
+  if (el) el.textContent = new Date().toLocaleTimeString('en-IN');
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  NORMALIZE STUDENT
+// ╚══════════════════════════════════════════════════════╝
+function normalize(s) {
+  return {
+    id:        s.id        || Date.now(),
+    name:      s.name      || '',
+    class:     s.class     || '',
+    section:   s.section   || '',
+    teacher:   s.teacher   || '',
+    gender:    s.gender    || '',
+    father:    s.father    || '',
+    fatherMob: s.fatherMob || '',
+    mother:    s.mother    || '',
+    motherMob: s.motherMob || '',
+    address:   s.address   || '',
+    status:    s.status    || 'Not Joined',
+    date:      s.date      || '',
+  };
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  FIREBASE — LOAD ALL DATA (one-time fetch)
+// ╚══════════════════════════════════════════════════════╝
+async function loadAll(showToast=false) {
+  setSyncUI('loading');
+  try {
+    const [sSnap, tSnap] = await Promise.all([
+      studentsRef.once('value'),
+      teachersRef.once('value')
+    ]);
+
+    const sData = sSnap.val();
+    State.students = sData ? Object.values(sData).map(normalize) : [];
+
+    const tData = tSnap.val();
+    State.teachers = tData ? Object.values(tData) : [];
+
+    // Seed default teachers if none
+    if (State.teachers.length === 0) {
+      const defs = defaultTeachers();
+      for (const t of defs) await teachersRef.child(t.id).set(t);
+      State.teachers = defs;
+    }
+
+    // Cache locally
+    localStorage.setItem('sms_students', JSON.stringify(State.students));
+    localStorage.setItem('sms_teachers', JSON.stringify(State.teachers));
+
+    setSyncUI('ok');
+    updateSyncTime();
+    populateTeacherSelect();
+    if (State.loggedIn) renderDashboard();
+    if (showToast) toast('✅ Data refreshed from Firebase!', 'success');
+  } catch(e) {
+    console.error('loadAll error:', e);
+    setSyncUI('error');
+    // Offline fallback
+    State.students = JSON.parse(localStorage.getItem('sms_students') || '[]');
+    State.teachers = JSON.parse(localStorage.getItem('sms_teachers') || '[]');
+    if (State.teachers.length === 0) State.teachers = defaultTeachers();
+    populateTeacherSelect();
+    if (State.loggedIn) renderDashboard();
+    if (showToast) toast('⚠️ Offline — showing cached data', 'warning');
+  }
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  FIREBASE — SAVE STUDENT
+// ╚══════════════════════════════════════════════════════╝
+async function fbSaveStudent(student) {
+  await studentsRef.child(String(student.id)).set(student);
+  localStorage.setItem('sms_students', JSON.stringify(State.students));
+  setSyncUI('ok'); updateSyncTime();
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  FIREBASE — DELETE STUDENT
+// ╚══════════════════════════════════════════════════════╝
+async function fbDeleteStudent(id) {
+  await studentsRef.child(String(id)).remove();
+  localStorage.setItem('sms_students', JSON.stringify(State.students));
+  setSyncUI('ok'); updateSyncTime();
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  FIREBASE — SAVE TEACHER
+// ╚══════════════════════════════════════════════════════╝
+async function fbSaveTeacher(teacher) {
+  await teachersRef.child(String(teacher.id)).set(teacher);
+  localStorage.setItem('sms_teachers', JSON.stringify(State.teachers));
+  setSyncUI('ok'); updateSyncTime();
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  FIREBASE — DELETE TEACHER
+// ╚══════════════════════════════════════════════════════╝
+async function fbDeleteTeacher(id) {
+  await teachersRef.child(String(id)).remove();
+  localStorage.setItem('sms_teachers', JSON.stringify(State.teachers));
+  setSyncUI('ok'); updateSyncTime();
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  REAL-TIME LISTENERS (auto-update all devices live)
+// ╚══════════════════════════════════════════════════════╝
+function startRealtimeListeners() {
+  studentsRef.on('value', snap => {
+    const data = snap.val();
+    State.students = data ? Object.values(data).map(normalize) : [];
+    localStorage.setItem('sms_students', JSON.stringify(State.students));
+    if (State.loggedIn) renderDashboard();
+  });
+  teachersRef.on('value', snap => {
+    const data = snap.val();
+    if (data) {
+      State.teachers = Object.values(data);
+      localStorage.setItem('sms_teachers', JSON.stringify(State.teachers));
+      populateTeacherSelect();
+      if (State.loggedIn) renderTeachers();
+    }
+  });
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  INIT
+// ╚══════════════════════════════════════════════════════╝
+window.onload = async function() {
+  showPage('setup');
+  try {
+    await loadAll();
+    startRealtimeListeners();
+    showPage('register');
+  } catch(e) {
+    State.students = JSON.parse(localStorage.getItem('sms_students') || '[]');
+    State.teachers = JSON.parse(localStorage.getItem('sms_teachers') || '[]');
+    if (State.teachers.length === 0) State.teachers = defaultTeachers();
+    populateTeacherSelect();
+    showPage('register');
+    setSyncUI('error');
+    toast('⚠️ Working offline — will sync when connected', 'warning');
+  }
+};
+
+// ╔══════════════════════════════════════════════════════╗
+//  TOAST
+// ╚══════════════════════════════════════════════════════╝
+let _tt;
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = type; t.style.display = 'block';
+  clearTimeout(_tt); _tt = setTimeout(() => t.style.display='none', 3400);
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  PAGE NAVIGATION
+// ╚══════════════════════════════════════════════════════╝
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (id === 'register') populateTeacherSelect();
+}
+function showOwnerLogin() {
+  if (State.loggedIn) { showPage('owner'); renderDashboard(); }
+  else showPage('ownerlogin');
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  TEACHER DROPDOWN
+// ╚══════════════════════════════════════════════════════╝
+function populateTeacherSelect() {
+  ['s_teacher','edit_teacher'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— Select Teacher —</option>';
+    State.teachers.forEach(t => {
+      const op = document.createElement('option');
+      op.value = t.name;
+      op.textContent = t.name + (t.subject ? ` (${t.subject})` : '');
+      sel.appendChild(op);
+    });
+    sel.value = cur;
+  });
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  STUDENT REGISTRATION
+// ╚══════════════════════════════════════════════════════╝
+async function submitRegistration(e) {
+  e.preventDefault();
+  const g = id => document.getElementById(id).value.trim();
+  const name=g('s_name'), cls=g('s_class'), teacher=g('s_teacher'), gender=g('s_gender'),
+        father=g('s_father'), fmob=g('s_father_mob'),
+        mother=g('s_mother'), mmob=g('s_mother_mob'), addr=g('s_address');
+
+  if (!name)   { toast('Student name is required','error'); return; }
+  if (!cls)    { toast('Please select a class','error'); return; }
+  if (!teacher){ toast('Please select a teacher','error'); return; }
+  if (!gender) { toast('Please select gender','error'); return; }
+  if (!father) { toast('Father name is required','error'); return; }
+  if (!/^\d{10}$/.test(fmob)) { toast('Father mobile must be 10 digits','error'); return; }
+  if (!mother) { toast('Mother name is required','error'); return; }
+  if (!/^\d{10}$/.test(mmob)) { toast('Mother mobile must be 10 digits','error'); return; }
+  if (!addr)   { toast('Address is required','error'); return; }
+
+  const student = {
+    id: Date.now(), name, class: cls,
+    section: g('s_section'), teacher, gender,
+    father, fatherMob: fmob, mother, motherMob: mmob,
+    address: addr, status: 'Not Joined',
+    date: new Date().toLocaleDateString('en-IN')
+  };
+
+  const btn = document.getElementById('regSubmitBtn');
+  btn.innerHTML = '<span class="spinner"></span>Saving…'; btn.disabled = true;
+
+  try {
+    await fbSaveStudent(student);
+    State.students.push(student);
+    toast('✅ Student registered successfully!', 'success');
+    resetRegForm();
+  } catch(err) {
+    State.students.push(student);
+    localStorage.setItem('sms_students', JSON.stringify(State.students));
+    toast('⚠️ Saved locally. Will sync when online.', 'warning');
+    resetRegForm();
+  }
+  btn.innerHTML = '✅ Submit Registration'; btn.disabled = false;
+}
+
+function resetRegForm() {
+  document.getElementById('regForm').reset();
+  populateTeacherSelect();
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  OWNER LOGIN / LOGOUT
+// ╚══════════════════════════════════════════════════════╝
+function ownerLogin() {
+  const pwd = document.getElementById('ownerPwd').value;
+  if (pwd !== State.ownerPwd) { toast('Wrong password!','error'); return; }
+  State.loggedIn = true;
+  document.getElementById('ownerPwd').value = '';
+  showPage('owner');
+  loadAll(false);
+  renderDashboard();
+  toast('Welcome, Owner! 🎉','success');
+  const el = document.getElementById('connectedUrl');
+  if (el) el.innerHTML =
+    '🔥 Project: <b>sri-medhaswi</b><br>' +
+    '📦 Database: <b>sri-medhaswi-default-rtdb</b><br>' +
+    '💾 Storage: <b>1 GB free (Firebase Spark plan)</b><br>' +
+    '👨‍🎓 Capacity: <b>~50,000+ students</b>';
+}
+function ownerLogout() { State.loggedIn = false; showPage('register'); toast('Logged out','info'); }
+
+// ╔══════════════════════════════════════════════════════╗
+//  DASHBOARD
+// ╚══════════════════════════════════════════════════════╝
+function renderDashboard() {
+  const joined    = State.students.filter(s=>(s.status||'Not Joined')==='Joined').length;
+  const notJoined = State.students.filter(s=>(s.status||'Not Joined')==='Not Joined').length;
+  const pending   = State.students.filter(s=>(s.status||'Not Joined')==='Pending').length;
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card"><div class="num">${State.students.length}</div><div class="lbl">Total Students</div></div>
+    <div class="stat-card"><div class="num" style="color:#6ee7b7">${joined}</div><div class="lbl">✅ Joined</div></div>
+    <div class="stat-card"><div class="num" style="color:#fcd34d">${pending}</div><div class="lbl">🕐 Pending</div></div>
+    <div class="stat-card"><div class="num" style="color:#fca5a5">${notJoined}</div><div class="lbl">❌ Not Joined</div></div>
+    <div class="stat-card"><div class="num">${State.teachers.length}</div><div class="lbl">Teachers</div></div>`;
+  renderAdmission();
+  renderTeachers();
+}
+
+function ownerTab(name, el) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  ['students','teachers','addteacher','settings'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = (t===name)?'block':'none';
+  });
+  if (name==='students') renderAdmission();
+  if (name==='teachers') renderTeachers();
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  ADMISSION PANEL
+// ╚══════════════════════════════════════════════════════╝
+function setAdmTab(status) { currentAdmTab = status; renderAdmission(); }
+
+function renderAdmission() {
+  const cls = (document.getElementById('filterClass')||{}).value||'';
+  const q   = ((document.getElementById('searchStudent')||{}).value||'').toLowerCase();
+
+  ['Not Joined','Pending','Joined'].forEach(st => {
+    const key = st==='Not Joined'?'notjoined':st==='Pending'?'pending':'joined';
+    const cnt = State.students.filter(s=>(s.status||'Not Joined')===st).length;
+    const el  = document.getElementById('cnt-'+key);
+    if (el) el.textContent = cnt+' students';
+  });
+
+  ['notjoined','pending','joined'].forEach(k => {
+    const btn = document.getElementById('adm-tab-'+k);
+    if (!btn) return;
+    const active = (k==='notjoined'&&currentAdmTab==='Not Joined')||
+                   (k==='pending'  &&currentAdmTab==='Pending')   ||
+                   (k==='joined'   &&currentAdmTab==='Joined');
+    btn.style.opacity   = active?'1':'0.5';
+    btn.style.boxShadow = active?'inset 0 -4px 0 rgba(0,0,0,0.2)':'none';
+  });
+
+  let list = State.students.filter(s=>(s.status||'Not Joined')===currentAdmTab);
+  if (cls) list = list.filter(s=>s.class===cls);
+  if (q)   list = list.filter(s=>s.name.toLowerCase().includes(q));
+
+  const tbody = document.getElementById('admissionTbody');
+  if (!tbody) return;
+
+  if (list.length===0) {
+    const lbl = {'Not Joined':'❌ No Not Joined students','Pending':'🕐 No Pending students','Joined':'✅ No Joined students'};
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="big">🎒</div>${lbl[currentAdmTab]}</div></td></tr>`;
+    return;
+  }
+
+  const moveOpts = {
+    'Not Joined': [['Pending','🕐 Pending'],['Joined','✅ Joined']],
+    'Pending':    [['Not Joined','❌ Not Joined'],['Joined','✅ Joined']],
+    'Joined':     [['Pending','🕐 Pending'],['Not Joined','❌ Not Joined']],
+  };
+
+  tbody.innerHTML = list.map((s,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td><b>${s.name}</b><br><span style="font-size:0.73rem;color:var(--grey)">${s.date||''}</span></td>
+      <td><span class="badge badge-blue">${s.class}</span>${s.section?` <span class="badge badge-gold">${s.section}</span>`:''}</td>
+      <td style="font-size:0.82rem;">${s.teacher}</td>
+      <td style="font-size:0.82rem;">${s.father}</td>
+      <td><a href="tel:${s.fatherMob}" style="color:var(--navy);text-decoration:none;font-weight:600;white-space:nowrap;font-size:0.82rem;">📞 ${s.fatherMob}</a></td>
+      <td style="font-size:0.82rem;">${s.mother}</td>
+      <td><a href="tel:${s.motherMob}" style="color:var(--navy);text-decoration:none;font-weight:600;white-space:nowrap;font-size:0.82rem;">📞 ${s.motherMob}</a></td>
+      <td>${moveOpts[currentAdmTab].map(([val,lbl])=>`
+        <button onclick="moveStudent('${s.id}','${val}')"
+          style="display:block;width:100%;margin-bottom:3px;padding:4px 10px;border-radius:6px;border:none;cursor:pointer;font-size:0.73rem;font-weight:600;font-family:inherit;
+          background:${val==='Joined'?'#d1fae5':val==='Pending'?'#fef3c7':'#fee2e2'};
+          color:${val==='Joined'?'#065f46':val==='Pending'?'#92400e':'#991b1b'};">${lbl}</button>`).join('')}</td>
+      <td>
+        <button class="icon-btn" title="Edit"   onclick="openEdit('${s.id}')">✏️</button>
+        <button class="icon-btn" title="Delete" onclick="deleteStudent('${s.id}')">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  MOVE STUDENT STATUS
+// ╚══════════════════════════════════════════════════════╝
+async function moveStudent(id, toStatus) {
+  const s = State.students.find(x=>String(x.id)===String(id));
+  if (!s) return;
+  s.status = toStatus;
+  renderDashboard();
+  try { await fbSaveStudent(s); }
+  catch(e) { localStorage.setItem('sms_students',JSON.stringify(State.students)); toast('⚠️ Saved locally','warning'); }
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  EDIT STUDENT
+// ╚══════════════════════════════════════════════════════╝
+function openEdit(id) {
+  const s = State.students.find(x=>String(x.id)===String(id));
+  if (!s) return;
+  populateTeacherSelect();
+  document.getElementById('edit_id').value         = s.id;
+  document.getElementById('edit_name').value       = s.name;
+  document.getElementById('edit_class').value      = s.class;
+  document.getElementById('edit_section').value    = s.section  || '';
+  document.getElementById('edit_teacher').value    = s.teacher;
+  document.getElementById('edit_gender').value     = s.gender   || '';
+  document.getElementById('edit_status').value     = s.status   || 'Not Joined';
+  document.getElementById('edit_father').value     = s.father;
+  document.getElementById('edit_father_mob').value = s.fatherMob;
+  document.getElementById('edit_mother').value     = s.mother;
+  document.getElementById('edit_mother_mob').value = s.motherMob;
+  document.getElementById('edit_address').value    = s.address;
+  document.getElementById('editModal').classList.add('show');
+}
+
+async function saveEdit() {
+  const id = document.getElementById('edit_id').value;
+  const s  = State.students.find(x=>String(x.id)===String(id));
+  if (!s) return;
+  const g = eid => document.getElementById(eid).value.trim();
+  const name=g('edit_name'), cls=document.getElementById('edit_class').value,
+        teacher=document.getElementById('edit_teacher').value,
+        father=g('edit_father'), fmob=g('edit_father_mob'),
+        mother=g('edit_mother'), mmob=g('edit_mother_mob'), addr=g('edit_address');
+
+  if (!name)   { toast('Student name is required','error'); return; }
+  if (!cls)    { toast('Please select a class','error'); return; }
+  if (!teacher){ toast('Please select a teacher','error'); return; }
+  if (!father) { toast('Father name is required','error'); return; }
+  if (!/^\d{10}$/.test(fmob)) { toast('Father mobile must be 10 digits','error'); return; }
+  if (!mother) { toast('Mother name is required','error'); return; }
+  if (!/^\d{10}$/.test(mmob)) { toast('Mother mobile must be 10 digits','error'); return; }
+  if (!addr)   { toast('Address is required','error'); return; }
+
+  s.name=name; s.class=cls;
+  s.section=document.getElementById('edit_section').value;
+  s.teacher=teacher; s.gender=document.getElementById('edit_gender').value;
+  s.status=document.getElementById('edit_status').value;
+  s.father=father; s.fatherMob=fmob;
+  s.mother=mother; s.motherMob=mmob; s.address=addr;
+
+  const btn = document.getElementById('saveEditBtn');
+  btn.innerHTML='<span class="spinner"></span>Saving…'; btn.disabled=true;
+  try {
+    await fbSaveStudent(s);
+    closeEditModal(); renderDashboard();
+    toast('✅ Student details updated!','success');
+  } catch(e) {
+    localStorage.setItem('sms_students',JSON.stringify(State.students));
+    closeEditModal(); renderDashboard();
+    toast('⚠️ Saved locally. Will sync when online.','warning');
+  }
+  btn.innerHTML='💾 Save Changes'; btn.disabled=false;
+}
+
+function closeEditModal() { document.getElementById('editModal').classList.remove('show'); }
+
+// ╔══════════════════════════════════════════════════════╗
+//  DELETE STUDENT
+// ╚══════════════════════════════════════════════════════╝
+async function deleteStudent(id) {
+  if (!confirm('Delete this student record?')) return;
+  State.students = State.students.filter(s=>String(s.id)!==String(id));
+  renderDashboard();
+  try { await fbDeleteStudent(id); toast('Student deleted','info'); }
+  catch(e) { localStorage.setItem('sms_students',JSON.stringify(State.students)); toast('⚠️ Deleted locally','warning'); }
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  TEACHERS
+// ╚══════════════════════════════════════════════════════╝
+function renderTeachers() {
+  const tbody = document.getElementById('teachersTbody');
+  if (!tbody) return;
+  if (State.teachers.length===0) {
+    tbody.innerHTML=`<tr><td colspan="5"><div class="empty-state"><div class="big">👩‍🏫</div>No teachers yet</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = State.teachers.map((t,i)=>`
+    <tr>
+      <td>${i+1}</td><td><b>${t.name}</b></td><td>${t.subject||'—'}</td><td>${t.mobile||'—'}</td>
+      <td><button class="btn btn-danger" style="padding:6px 14px;font-size:0.78rem;" onclick="deleteTeacher('${t.id}')">🗑️ Delete</button></td>
+    </tr>`).join('');
+}
+
+async function addTeacher() {
+  const name = document.getElementById('t_name').value.trim();
+  if (!name) { toast('Teacher name is required','error'); return; }
+  const teacher = {
+    id: 'T'+Date.now(), name,
+    subject: document.getElementById('t_subject').value.trim(),
+    mobile:  document.getElementById('t_mobile').value.trim()
+  };
+  State.teachers.push(teacher);
+  renderTeachers(); renderDashboard(); populateTeacherSelect();
+  document.getElementById('t_name').value='';
+  document.getElementById('t_subject').value='';
+  document.getElementById('t_mobile').value='';
+  try { await fbSaveTeacher(teacher); toast(`Teacher "${name}" added!`,'success'); }
+  catch(e) { localStorage.setItem('sms_teachers',JSON.stringify(State.teachers)); toast('⚠️ Saved locally','warning'); }
+}
+
+async function deleteTeacher(id) {
+  if (!confirm('Remove this teacher?')) return;
+  State.teachers = State.teachers.filter(t=>String(t.id)!==String(id));
+  renderTeachers(); renderDashboard(); populateTeacherSelect();
+  try { await fbDeleteTeacher(id); toast('Teacher removed','info'); }
+  catch(e) { localStorage.setItem('sms_teachers',JSON.stringify(State.teachers)); toast('⚠️ Removed locally','warning'); }
+}
+
+// ╔══════════════════════════════════════════════════════╗
+//  SETTINGS
+// ╚══════════════════════════════════════════════════════╝
+function changePassword() {
+  const cur=document.getElementById('cur_pwd').value;
+  const np=document.getElementById('new_pwd').value;
+  const cp=document.getElementById('conf_pwd').value;
+  if (cur!==State.ownerPwd) { toast('Current password incorrect','error'); return; }
+  if (np.length<4) { toast('New password must be ≥ 4 characters','error'); return; }
+  if (np!==cp)     { toast('Passwords do not match','error'); return; }
+  State.ownerPwd=np; localStorage.setItem('sms_owner_pwd',np);
+  document.getElementById('cur_pwd').value='';
+  document.getElementById('new_pwd').value='';
+  document.getElementById('conf_pwd').value='';
+  toast('Password changed successfully!','success');
+}
+
+async function clearAllStudents() {
+  if (!confirm('This will permanently delete ALL student records from Firebase. Continue?')) return;
+  try {
+    await studentsRef.remove();
+    State.students=[];
+    localStorage.setItem('sms_students','[]');
+    renderDashboard();
+    toast('All student records cleared','info');
+  } catch(e) { toast('⚠️ Error clearing records','error'); }
+}
+</script>
+</body>
+</html>
